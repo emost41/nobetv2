@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HadiÇöz - KBB Soru Prototipi</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <h1>HadiÇöz</h1>
+        <p>KBB Board Hazırlık - Prototip</p>
+      </header>
+
+      <section class="stats" aria-label="oturum-istatistikleri">
+        <div><span id="solvedCount">0</span><small>Çözülen</small></div>
+        <div><span id="correctCount">0</span><small>Doğru</small></div>
+        <div><span id="reviewCount">0</span><small>Tekrar</small></div>
+      </section>
+
+      <section id="card" class="card" aria-live="polite">
+        <p id="topic" class="topic"></p>
+        <h2 id="stem"></h2>
+        <div id="options" class="options"></div>
+
+        <p id="status" class="status"></p>
+        <p class="hint">İpucu: Açıklama paneli için kartı aşağıdan yukarı kaydır.</p>
+      </section>
+
+      <section id="explainSheet" class="sheet" aria-hidden="true">
+        <h3>Açıklama</h3>
+        <p id="explainText"></p>
+        <p id="sourceText" class="source"></p>
+      </section>
+
+      <footer class="actions">
+        <button id="nextBtn" type="button">Sonraki Soru</button>
+      </footer>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

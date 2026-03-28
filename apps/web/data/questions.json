@@ -1,0 +1,47 @@
+[
+  {
+    "question_id": "kbb-001",
+    "topic": "Otoloji",
+    "stem": "Akut otitis media tedavisinde aşağıdakilerden hangisi ilk basamak antibiyotik seçeneğidir?",
+    "options": {
+      "A": "Amoksisilin",
+      "B": "Siprofloksasin",
+      "C": "Klaritromisin",
+      "D": "Doksisiklin",
+      "E": "Metronidazol"
+    },
+    "correct_option": "A",
+    "explanation_short": "Komplike olmayan akut otitis mediada ilk seçenek çoğu rehberde yüksek doz amoksisilindir.",
+    "source": "KBB çekirdek eğitim notları - örnek format"
+  },
+  {
+    "question_id": "kbb-002",
+    "topic": "Rinoloji",
+    "stem": "Epistaksis yönetiminde posterior kanama şüphesinde ilk yaklaşım aşağıdakilerden hangisidir?",
+    "options": {
+      "A": "Sadece topikal antibiyotik",
+      "B": "Posterior nazal tampon ve monitorizasyon",
+      "C": "Anında septoplasti",
+      "D": "Yalnız oral antihistaminik",
+      "E": "Nazal steroid başlama"
+    },
+    "correct_option": "B",
+    "explanation_short": "Posterior epistaksiste hava yolu, hemodinami ve posterior tampon temel başlangıç yaklaşımıdır.",
+    "source": "KBB çekirdek eğitim notları - örnek format"
+  },
+  {
+    "question_id": "kbb-003",
+    "topic": "Baş-Boyun",
+    "stem": "Sigara öyküsü olan hastada 3 haftadan uzun süren ses kısıklığında ilk yapılması gereken nedir?",
+    "options": {
+      "A": "Sadece proton pompa inhibitörü başlamak",
+      "B": "Rutin tiroid USG istemek",
+      "C": "Larenksin endoskopik değerlendirmesi",
+      "D": "6 ay bekleyip kontrol",
+      "E": "Sadece ses istirahati"
+    },
+    "correct_option": "C",
+    "explanation_short": "Uzamış ses kısıklığında malignite dışlanması için erken laringoskopik değerlendirme gerekir.",
+    "source": "KBB çekirdek eğitim notları - örnek format"
+  }
+]

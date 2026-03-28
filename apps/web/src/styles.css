@@ -1,0 +1,155 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f7fb;
+  color: #14213d;
+}
+
+.app {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.topbar p {
+  margin: 0.25rem 0 0;
+  color: #4c5b7a;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.stats div {
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.stats span {
+  display: block;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.stats small {
+  color: #5f6b85;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 10px 28px rgba(16, 40, 80, 0.1);
+  touch-action: pan-y;
+}
+
+.topic {
+  margin: 0;
+  color: #2f4f9f;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.card h2 {
+  margin-top: 0.6rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.option {
+  border: 1px solid #d8e0f0;
+  background: #f8faff;
+  border-radius: 10px;
+  text-align: left;
+  padding: 0.7rem;
+}
+
+.option.selected {
+  border-color: #2f4f9f;
+  background: #eef3ff;
+}
+
+.option.correct {
+  border-color: #1f9d55;
+  background: #e6f9ef;
+}
+
+.option.wrong {
+  border-color: #d93025;
+  background: #fdecea;
+}
+
+.status {
+  min-height: 1.25rem;
+  font-weight: 600;
+}
+
+.hint {
+  color: #5f6b85;
+  font-size: 0.9rem;
+}
+
+.actions button {
+  width: 100%;
+  border: none;
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: #14213d;
+  color: #fff;
+  font-weight: 700;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: -100%;
+  background: #ffffff;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.15);
+  padding: 1rem;
+  transition: bottom 220ms ease-in-out;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.sheet.open {
+  bottom: 0;
+}
+
+.source {
+  color: #334e68;
+  font-size: 0.92rem;
+}
+
+@media (min-width: 768px) {
+  .app {
+    padding-bottom: 6rem;
+  }
+}
