@@ -1,22 +1,27 @@
 # HadiÇöz (hadicoz)
 
-KBB odaklı, uzmanlık öğrencileri ve asistanlar için mobil uyumlu soru çözme prototipi.
+KBB odaklı, uzmanlık öğrencileri ve asistanlar için mobil uyumlu soru çözme uygulaması (MVP web sürümü).
 
-## Ne var?
+## Özellikler
 - 5 şıklı (A-B-C-D-E) soru kartı
-- Şık seçimi ile cevaplama
+- Web'de şık seçerek cevaplama
 - Yukarı swipe ile kısa açıklama + kaynak paneli
-- Basit tekrar kuyruğu sayaç mantığı
+- Sağ/sol swipe (veya buton) ile eminlik işaretleme
+- Yanlış ve emin değilim cevaplarını tekrar kuyruğuna alma
+- LocalStorage ile temel ilerleme kaydı
+- 10 soruluk günlük oturum ilerleme göstergesi
 
 ## Çalıştırma
-Statik prototip olduğu için herhangi bir basit HTTP sunucusuyla açabilirsiniz:
-
 ```bash
 cd apps/web
 python3 -m http.server 4173
 ```
 
-Ardından tarayıcıda `http://localhost:4173` adresini açın.
+Tarayıcıda aç:
+- `http://localhost:4173`
+
+## İçerik notu
+KBB kaynak kitaplarından içerik türetilebilir; ancak telifli metinler birebir kopyalanmadan, lisans ve editör doğrulama süreçleri ile ilerlenmelidir.
 
 ## Dokümanlar
 - PRD: `PRD.md`

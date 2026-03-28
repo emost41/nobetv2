@@ -1,3 +1,6 @@
+const STORAGE_KEY = "hadicoz_progress_v1";
+const SESSION_TARGET = 10;
+
 const el = {
   topic: document.getElementById("topic"),
   stem: document.getElementById("stem"),
@@ -10,16 +13,26 @@ const el = {
   correct: document.getElementById("correctCount"),
   review: document.getElementById("reviewCount"),
   nextBtn: document.getElementById("nextBtn"),
-  card: document.getElementById("card")
+  card: document.getElementById("card"),
+  progressBar: document.getElementById("progressBar"),
+  sessionLabel: document.getElementById("sessionLabel"),
+  summary: document.getElementById("summary"),
+  summaryText: document.getElementById("summaryText"),
+  restartBtn: document.getElementById("restartBtn"),
+  confidenceWrap: document.getElementById("confidenceWrap"),
+  confidentBtn: document.getElementById("confidentBtn"),
+  unsureBtn: document.getElementById("unsureBtn")
 };
 
 const state = {
   questions: [],
+  queue: [],
   index: 0,
   solved: 0,
   correct: 0,
   review: 0,
   answered: false,
+  confidence: null,
   touchStartX: 0,
   touchStartY: 0,
   touchEndX: 0,
@@ -30,18 +43,57 @@ function updateStats() {
   el.solved.textContent = String(state.solved);
   el.correct.textContent = String(state.correct);
   el.review.textContent = String(state.review);
+  el.sessionLabel.textContent = `${Math.min(state.solved, SESSION_TARGET)} / ${SESSION_TARGET}`;
+  const progress = Math.min((state.solved / SESSION_TARGET) * 100, 100);
+  el.progressBar.style.width = `${progress}%`;
+}
+
+function saveProgress() {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      solved: state.solved,
+      correct: state.correct,
+      review: state.review,
+      queue: state.queue
+    })
+  );
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    state.solved = Number(parsed.solved ?? 0);
+    state.correct = Number(parsed.correct ?? 0);
+    state.review = Number(parsed.review ?? 0);
+    state.queue = Array.isArray(parsed.queue) ? parsed.queue : [];
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 function getCurrentQuestion() {
   return state.questions[state.index % state.questions.length];
 }
 
-function renderQuestion() {
-  const q = getCurrentQuestion();
+function resetVisualState() {
   state.answered = false;
+  state.confidence = null;
   el.status.textContent = "";
   el.sheet.classList.remove("open");
   el.sheet.setAttribute("aria-hidden", "true");
+  el.confidenceWrap.hidden = true;
+  el.confidentBtn.disabled = false;
+  el.unsureBtn.disabled = false;
+}
+
+function renderQuestion() {
+  const q = getCurrentQuestion();
+  resetVisualState();
 
   el.topic.textContent = q.topic;
   el.stem.textContent = q.stem;
@@ -58,6 +110,35 @@ function renderQuestion() {
     btn.addEventListener("click", () => selectOption(btn, key));
     el.options.appendChild(btn);
   });
+}
+
+function markForReview(questionId, priority) {
+  state.queue.push({ questionId, priority, at: Date.now() });
+  state.review += 1;
+}
+
+function lockConfidence() {
+  el.confidentBtn.disabled = true;
+  el.unsureBtn.disabled = true;
+}
+
+function setConfidence(type) {
+  if (!state.answered || state.confidence) {
+    return;
+  }
+  state.confidence = type;
+  const q = getCurrentQuestion();
+
+  if (type === "unsure") {
+    markForReview(q.question_id, "medium");
+    el.status.textContent = "↩️ Emin değilim kaydedildi. Soru tekrar kuyruğuna eklendi.";
+  } else {
+    el.status.textContent = "✅ Eminim kaydedildi.";
+  }
+
+  lockConfidence();
+  updateStats();
+  saveProgress();
 }
 
 function selectOption(selectedBtn, selectedKey) {
@@ -81,14 +162,17 @@ function selectOption(selectedBtn, selectedKey) {
 
   if (selectedKey === q.correct_option) {
     state.correct += 1;
-    el.status.textContent = "✅ Doğru. Açıklamayı görmek için yukarı kaydır.";
+    el.status.textContent = "✅ Doğru. Eminlik için sağ/sol swipe yap veya butonu kullan.";
   } else {
-    state.review += 1;
     selectedBtn.classList.add("wrong");
+    markForReview(q.question_id, "high");
     el.status.textContent = `❌ Yanlış. Doğru cevap: ${q.correct_option}. Açıklama için yukarı kaydır.`;
   }
 
+  el.confidenceWrap.hidden = false;
   updateStats();
+  saveProgress();
+  checkSessionComplete();
 }
 
 function openExplanation() {
@@ -112,15 +196,39 @@ function evaluateSwipe() {
     return;
   }
 
-  if (absX > absY && absX > 45) {
+  if (absX > absY && absX > 45 && state.answered) {
     if (deltaX > 0) {
-      el.status.textContent = "➡️ Sağ swipe: Doğru / Eminim işaretlendi (MVP notu).";
+      setConfidence("confident");
     } else {
-      state.review += 1;
-      updateStats();
-      el.status.textContent = "⬅️ Sol swipe: Yanlış / Emin değilim işaretlendi.";
+      setConfidence("unsure");
     }
   }
+}
+
+function checkSessionComplete() {
+  if (state.solved < SESSION_TARGET) {
+    return;
+  }
+
+  el.summary.hidden = false;
+  el.summaryText.textContent = `Bu oturumda ${state.solved} soru çözdün, ${state.correct} doğru yaptın. Tekrar kuyruğunda ${state.review} kayıt var.`;
+}
+
+function moveNext() {
+  state.index = (state.index + 1) % state.questions.length;
+  renderQuestion();
+}
+
+function restartSession() {
+  state.index = 0;
+  state.solved = 0;
+  state.correct = 0;
+  state.review = 0;
+  state.queue = [];
+  el.summary.hidden = true;
+  updateStats();
+  saveProgress();
+  renderQuestion();
 }
 
 el.card.addEventListener("touchstart", (e) => {
@@ -153,16 +261,18 @@ el.card.addEventListener("mouseup", (e) => {
   evaluateSwipe();
 });
 
-el.nextBtn.addEventListener("click", () => {
-  state.index = (state.index + 1) % state.questions.length;
-  renderQuestion();
-});
+el.nextBtn.addEventListener("click", moveNext);
+el.restartBtn.addEventListener("click", restartSession);
+el.confidentBtn.addEventListener("click", () => setConfidence("confident"));
+el.unsureBtn.addEventListener("click", () => setConfidence("unsure"));
 
 async function init() {
   const response = await fetch("./data/questions.json");
   state.questions = await response.json();
+  loadProgress();
   updateStats();
   renderQuestion();
+  checkSessionComplete();
 }
 
 init();

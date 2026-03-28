@@ -10,7 +10,7 @@
     <main class="app">
       <header class="topbar">
         <h1>HadiÇöz</h1>
-        <p>KBB Board Hazırlık - Prototip</p>
+        <p>KBB Board Hazırlık</p>
       </header>
 
       <section class="stats" aria-label="oturum-istatistikleri">
@@ -19,13 +19,37 @@
         <div><span id="reviewCount">0</span><small>Tekrar</small></div>
       </section>
 
+      <section class="progress-card">
+        <div class="progress-labels">
+          <strong id="sessionLabel">0 / 10</strong>
+          <small>Günlük hedef</small>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+      </section>
+
       <section id="card" class="card" aria-live="polite">
         <p id="topic" class="topic"></p>
         <h2 id="stem"></h2>
         <div id="options" class="options"></div>
 
+        <div class="confidence" id="confidenceWrap" hidden>
+          <p>Swipe yerine web için tıkla:</p>
+          <div class="confidence-actions">
+            <button id="confidentBtn" type="button">Sağ Swipe = Eminim</button>
+            <button id="unsureBtn" type="button">Sol Swipe = Emin Değilim</button>
+          </div>
+        </div>
+
         <p id="status" class="status"></p>
-        <p class="hint">İpucu: Açıklama paneli için kartı aşağıdan yukarı kaydır.</p>
+        <p class="hint">Açıklama paneli için kartı aşağıdan yukarı kaydır.</p>
+      </section>
+
+      <section id="summary" class="summary" hidden>
+        <h3>Oturum Tamamlandı 🎉</h3>
+        <p id="summaryText"></p>
+        <button id="restartBtn" type="button">Yeni Oturum Başlat</button>
       </section>
 
       <section id="explainSheet" class="sheet" aria-hidden="true">

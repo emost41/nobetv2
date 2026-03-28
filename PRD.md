@@ -1,69 +1,61 @@
-# HadiÇöz PRD (v0.1)
+# HadiÇöz PRD (v0.2)
 
 ## 1. Ürün Özeti
-HadiÇöz, uzmanlık öğrencileri ve asistan hekimler için KBB odaklı, mobil uyumlu web tabanlı bir soru çözme uygulamasıdır. Kullanıcılar soruları kart formatında çözer, swipe hareketleriyle hızlı etkileşim kurar ve zayıf olduğu soruları tekrar kuyruğunda görerek board sınavına sistematik şekilde hazırlanır.
+HadiÇöz; KBB alanında board sınavına hazırlanan uzmanlık öğrencileri ve asistan hekimler için mobil uyumlu, hızlı soru çözme ve tekrar odaklı bir web uygulamasıdır.
 
 ## 2. Hedef Kitle
 - Uzmanlık öğrencileri
 - Asistan hekimler
-- Board sınavına hazırlanan hekimler
 
-## 3. Kapsam (MVP)
-### 3.1 Soru Akışı
-- Soru kartı + 5 şık (A, B, C, D, E)
-- Web üzerinde kullanıcı şıkkı tıklayarak cevap verir
-- Cevap verildikten sonra durum etiketi görünür (doğru/yanlış)
+## 3. Değer Önerisi
+- Nöbet aralarında 5-10 dakikalık mikro seanslarla düzenli çalışma
+- Eminlik verisi ile öğrenme açıklarını daha doğru yakalama
+- Kısa açıklama + kaynakla hızlı pekiştirme
 
-### 3.2 Gesture Tasarımı
-- Sağa kaydırma: Doğru / Eminim
-- Sola kaydırma: Yanlış / Emin değilim
-- Aşağıdan yukarı kaydırma: Açıklama panelini açar
-- Açıklama paneli kısa açıklama + kaynak içerir
+## 4. MVP Özellikleri
+### 4.1 Soru Akışı
+- Kart tabanlı arayüz
+- 5 şık (A/B/C/D/E)
+- Web'de doğrudan şık seçimi
 
-### 3.3 Öğrenme Döngüsü
-- Yanlış veya emin olunmayan sorular "Tekrar Et" kuyruğuna alınır
-- Basit spaced repetition adımları: 1, 3, 7, 14 gün
+### 4.2 Gesture Etkileşimi
+- Yukarı swipe: Açıklama paneli (kısa açıklama + kaynak)
+- Sağ swipe: Doğru/Eminim geri bildirimi
+- Sol swipe: Yanlış/Emin değilim geri bildirimi
+- Desktop fallback: Eminim / Emin değilim butonları
 
-### 3.4 Oyunlaştırma
-- Günlük seri (streak)
-- Toplam çözülen soru
-- Doğruluk yüzdesi
+### 4.3 Tekrar Sistemi
+- Yanlış cevap: yüksek öncelikli tekrar
+- Emin değilim işareti: orta öncelikli tekrar
+- Kuyruk kaydı: soru kimliği + öncelik + zaman
 
-## 4. Kapsam Dışı (v1 sonrası)
-- Çoklu branş desteği (ilk sürümde sadece KBB)
-- Gerçek zamanlı leaderboard
-- Native mobil uygulama
+### 4.4 Oyunlaştırma
+- Günlük hedef: 10 soru
+- İlerleme çubuğu
+- Oturum özeti ekranı
 
 ## 5. Kullanıcı Hikayeleri
-1. Asistan hekim olarak nöbet arasında kısa sürede 10 soru çözmek istiyorum.
-2. Yanlış yaptığım soruları ayrı bir kuyruğa atıp tekrar görmek istiyorum.
-3. Cevaptan sonra yukarı kaydırıp kısa açıklamayı ve kaynağı görmek istiyorum.
+1. Asistan hekim olarak günlük 10 soruluk bir hedefi tamamlamak istiyorum.
+2. Cevapladıktan sonra yukarı swipe ile açıklamayı hızlıca görmek istiyorum.
+3. Emin olmadığım soruların otomatik tekrar kuyruğuna düşmesini istiyorum.
 
 ## 6. Başarı Kriterleri
-- İlk oturumda kullanıcı en az 10 soruyu başarıyla tamamlayabilmeli.
-- Ortalama soru cevaplama süresi < 45 saniye.
-- İlk hafta tekrar kuyruğuna düşen soruların en az %60'ı yeniden cevaplanmalı.
+- Kullanıcı ilk 2 dakika içinde ilk soruyu cevaplayabilmeli.
+- Günlük hedef tamamlanma oranı takip edilebilmeli.
+- Yanlış + emin değilim soruları tekrar kuyruğuna yazılmalı.
 
-## 7. Teknik Yaklaşım (MVP)
-- Mobil uyumlu web arayüzü
-- Basit istemci taraflı prototip (JSON soru datası)
-- Sonraki fazda kimlik doğrulama + kalıcı veritabanı
+## 7. Teknik Kapsam
+- Aşama 1: Statik web MVP (tamamlandı)
+- Aşama 2: Auth + backend + içerik paneli
+- Aşama 3: Gerçek spaced repetition zamanlaması ve analitik
 
-## 8. Veri Şeması (MVP prototip)
-- question_id
-- stem
-- options[A-E]
-- correct_option
-- explanation_short
-- source
-- topic (KBB alt konusu)
+## 8. İçerik Kaynak Yönetimi
+- Kaynak kitaplardan birebir kopya yok
+- Lisans/izin doğrulaması zorunlu
+- Her soru için referans alanı zorunlu
+- Editör hekim doğrulaması olmadan yayın yok
 
-## 9. Riskler ve Önlemler
-- İçerik lisans riski: Kaynak hakları yazılı izinle doğrulanmalı.
-- Tıbbi doğruluk riski: İçerik editör onay süreci zorunlu olmalı.
-- Yanlış güven (overconfidence): Eminim/emin değilim verisi analiz edilerek tekrar kuyruğuna beslenmeli.
-
-## 10. Yol Haritası
-- Sprint 1: Prototip UI + swipe etkileşimi + soru akışı
-- Sprint 2: Tekrar kuyruğu + local istatistikler
-- Sprint 3: İçerik yönetimi + backend entegrasyonu
+## 9. Sonraki Sprint Planı
+- Supabase auth + kullanıcı profili
+- Kalıcı tekrar kuyruğu ve günlük plan
+- KBB konu filtreleri (otoloji/rinoloji/baş-boyun)

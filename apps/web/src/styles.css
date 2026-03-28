@@ -14,7 +14,7 @@ body {
 }
 
 .app {
-  width: min(680px, 100%);
+  width: min(760px, 100%);
   margin: 0 auto;
   min-height: 100vh;
   padding: 1rem;
@@ -24,7 +24,7 @@ body {
 
 .topbar h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.55rem;
 }
 
 .topbar p {
@@ -38,10 +38,15 @@ body {
   gap: 0.75rem;
 }
 
-.stats div {
+.stats div,
+.progress-card,
+.summary {
   background: #fff;
   border-radius: 12px;
   padding: 0.75rem;
+}
+
+.stats div {
   text-align: center;
 }
 
@@ -51,8 +56,31 @@ body {
   font-size: 1.3rem;
 }
 
-.stats small {
+.stats small,
+.progress-labels small {
   color: #5f6b85;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.progress-track {
+  margin-top: 0.55rem;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e8eef8;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #2f4f9f, #5077d8);
+  transition: width 220ms ease;
 }
 
 .card {
@@ -86,7 +114,7 @@ body {
   background: #f8faff;
   border-radius: 10px;
   text-align: left;
-  padding: 0.7rem;
+  padding: 0.75rem;
 }
 
 .option.selected {
@@ -104,9 +132,35 @@ body {
   background: #fdecea;
 }
 
+.confidence {
+  margin-top: 1rem;
+  border-top: 1px solid #edf1f9;
+  padding-top: 0.8rem;
+}
+
+.confidence p {
+  margin: 0 0 0.5rem;
+  color: #334e68;
+  font-size: 0.92rem;
+}
+
+.confidence-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.confidence-actions button {
+  border-radius: 10px;
+  border: 1px solid #d4deef;
+  padding: 0.6rem;
+  background: #fff;
+}
+
 .status {
   min-height: 1.25rem;
   font-weight: 600;
+  margin-top: 0.8rem;
 }
 
 .hint {
@@ -114,7 +168,8 @@ body {
   font-size: 0.9rem;
 }
 
-.actions button {
+.actions button,
+.summary button {
   width: 100%;
   border: none;
   padding: 0.85rem;
@@ -135,8 +190,9 @@ body {
   box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.15);
   padding: 1rem;
   transition: bottom 220ms ease-in-out;
-  max-width: 680px;
+  max-width: 760px;
   margin: 0 auto;
+  z-index: 30;
 }
 
 .sheet.open {
@@ -148,8 +204,8 @@ body {
   font-size: 0.92rem;
 }
 
-@media (min-width: 768px) {
-  .app {
-    padding-bottom: 6rem;
+@media (max-width: 520px) {
+  .confidence-actions {
+    grid-template-columns: 1fr;
   }
 }
