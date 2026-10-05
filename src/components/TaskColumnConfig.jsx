@@ -6,7 +6,8 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
         eligibleSeniorities: [],
         targetWeekdays: [1, 3, 4, 5],
         maxPerDay: 3,
-        preferredSeniorityMix: []
+        preferredSeniorityMix: [],
+        equalDistribution: false
     };
 
     const [selectionMode, setSelectionMode] = useState(
@@ -19,6 +20,7 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
     const [preferredMix, setPreferredMix] = useState(
         config.preferredSeniorityMix?.join(',') || ''
     );
+    const [equalDistribution, setEqualDistribution] = useState(config.equalDistribution ?? false);
 
     const weekdayNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 
@@ -28,7 +30,8 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
             eligibleSeniorities: selectionMode === 'seniority' ? selectedSeniorities : [],
             targetWeekdays,
             maxPerDay,
-            preferredSeniorityMix: preferredMix ? preferredMix.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : []
+            preferredSeniorityMix: preferredMix ? preferredMix.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [],
+            equalDistribution
         };
 
         setConstraints(prev => ({
