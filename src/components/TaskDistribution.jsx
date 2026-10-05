@@ -302,6 +302,9 @@ const TaskDistribution = ({ staffList, schedule, constraints, tasks, setTasks, o
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ margin: 0 }}>Günlük Görev Dağılımı</h3>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={handleTaskExport} className="btn btn-secondary btn-sm">
+                        📊 Excel/CSV
+                    </button>
                     <button onClick={handlePrint} className="btn btn-secondary btn-sm">
                         🖨️ Yazdır
                     </button>
