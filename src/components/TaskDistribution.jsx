@@ -686,7 +686,7 @@ const TaskDistribution = ({ staffList, schedule, constraints, tasks, setTasks, o
                                     </div>
                                     <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px' }}>
                                         {visibleStatsColumns.map(({ col, idx }) => (
-                                            <button key={idx} onClick={() => setActiveStatsTab(idx)} className={`mode-btn${effectiveStatsTab === idx ? ' active-required' : ''`} style={{ flex: '0 0 auto', whiteSpace: 'nowrap', padding: '5px 9px', fontSize: '0.72rem' }}>{col}</button>
+                                            <button key={idx} onClick={() => setActiveStatsTab(idx)} className={`mode-btn${effectiveStatsTab === idx ? ' active-required' : ''}`} style={{ flex: '0 0 auto', whiteSpace: 'nowrap', padding: '5px 9px', fontSize: '0.72rem' }}>{col}</button>
                                         ))}
                                     </div>
                                     <div style={{ maxHeight: '320px', overflow: 'auto', borderRadius: 'var(--radius-md)' }}>
