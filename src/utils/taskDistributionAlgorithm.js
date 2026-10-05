@@ -160,10 +160,10 @@ export function distributeTaskColumn({
         }
 
         // Select staff for this day
-        selectStaffForDay.currentDateString = dateString;
         const selectedStaff = selectStaffForDay(
             availableStaff,
             staffAssignments,
+            dateString,
             weekNumber,
             maxPerDay,
             targetPerPerson,
@@ -235,6 +235,7 @@ function getAvailableStaffForDay(day, eligibleStaff, schedule, tasks, columnInde
 function selectStaffForDay(
     availableStaff,
     staffAssignments,
+    currentDateString,
     weekNumber,
     maxPerDay,
     targetPerPerson,
@@ -243,8 +244,6 @@ function selectStaffForDay(
 ) {
     const selected = [];
     const candidates = [...availableStaff].sort(() => Math.random() - 0.5);
-    const currentDateString = selectStaffForDay.currentDateString;
-
     const isPreviousCalendarDay = (staff) => {
         const lastDay = staffAssignments[staff.id].days.at(-1);
         if (!lastDay) return false;
