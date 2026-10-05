@@ -7,58 +7,55 @@ const ExportTools = ({ schedule, staffList, history, onLoadHistory, onDeleteHist
 
     const generateTableData = () => {
         if (!schedule) return { rows: [], monthTitle: '' };
-        const firstDate = Object.keys(schedule).filter(k => !k.startsWith('_'))[0];
-        if (!firstDate) return [];
+        const firstDate = Object.keys(schedule).find(k => !k.startsWith('_'));
+        if (!firstDate) return { rows: [], monthTitle: '' };
 
         const selectedDate = new Date(firstDate);
-        const monthStart = startOfMonth(selectedDate);
-        const monthEnd = endOfMonth(selectedDate);
-        const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+        const days = eachDayOfInterval({ start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) });
         const monthTitle = format(selectedDate, 'MMMM yyyy', { locale: tr });
 
         let maxAssigned = 2;
         days.forEach(day => {
             const dateString = format(day, 'yyyy-MM-dd');
-            const assigned = schedule[dateString] || [];
-            if (assigned.length > maxAssigned) {
-                maxAssigned = assigned.length;
-            }
+            maxAssigned = Math.max(maxAssigned, (schedule[dateString] || []).length);
         });
 
         const rows = [];
         const header = ['Tarih', 'Gün'];
         const shiftColumnNames = constraints?.shiftColumnNames || ['Nöbetçi 1', 'Nöbetçi 2'];
-        for (let i = 1; i <= maxAssigned; i++) {
-            header.push(shiftColumnNames[i - 1] || `Nöbetçi ${i}`);
+        for (let i = 0; i < maxAssigned; i++) {
+            header.push(shiftColumnNames[i] || `Nöbetçi ${i + 1}`);
         }
 
         const taskColumns = constraints?.taskColumns || [];
-        taskColumns.forEach(col => header.push(col));
+        taskColumns.forEach((col, idx) => {
+            const maxPerDay = constraints?.taskColumnConfig?.[idx]?.maxPerDay || 1;
+            for (let subIdx = 0; subIdx < maxPerDay; subIdx++) {
+                header.push(maxPerDay > 1 ? `${col} ${subIdx + 1}` : col);
+            }
+        });
         rows.push(header);
 
         days.forEach(day => {
             const dateString = format(day, 'yyyy-MM-dd');
             const assigned = schedule[dateString] || [];
-            const dayName = format(day, 'EEEE', { locale: tr });
-            const dateFormatted = format(day, 'd MMMM', { locale: tr });
+            const row = [format(day, 'd MMMM', { locale: tr }), format(day, 'EEEE', { locale: tr })];
 
-            const row = [dateFormatted, dayName];
             for (let i = 0; i < maxAssigned; i++) {
-                if (assigned[i]) {
-                    row.push(assigned[i].name || `${assigned[i].firstName} ${assigned[i].lastName}`);
-                } else {
-                    row.push('-');
-                }
+                const person = assigned[i];
+                row.push(person ? (person.name || `${person.firstName || ''} ${person.lastName || ''}`).trim() : '-');
             }
 
-            const dayTasks = tasks ? (tasks[dateString] || {}) : {};
+            const dayTasks = tasks?.[dateString] || {};
             taskColumns.forEach((_, idx) => {
-                const staffId = dayTasks[idx];
-                if (staffId) {
-                    const staff = staffList.find(s => s.id === staffId);
-                    row.push(staff ? (staff.name || `${staff.firstName} ${staff.lastName}`) : '?');
-                } else {
-                    row.push('');
+                const maxPerDay = constraints?.taskColumnConfig?.[idx]?.maxPerDay || 1;
+                const assignedIds = Array.isArray(dayTasks[idx])
+                    ? dayTasks[idx]
+                    : (dayTasks[idx] ? [dayTasks[idx]] : []);
+                for (let subIdx = 0; subIdx < maxPerDay; subIdx++) {
+                    const staffId = assignedIds[subIdx];
+                    const staff = staffId ? staffList.find(s => s.id === staffId) : null;
+                    row.push(staff ? (staff.name || `${staff.firstName || ''} ${staff.lastName || ''}`).trim() : '');
                 }
             });
 
