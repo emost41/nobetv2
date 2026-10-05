@@ -277,9 +277,12 @@ function selectStaffForDay(
 
     // If preferred seniority mix is specified, try to pick those first among the best candidates
     if (preferredSeniorityMix && preferredSeniorityMix.length > 0) {
-        // We only look at the top candidates (those with lowest counts) to maintain fairness
+        // In equal mode, seniority mixing can only choose from people at the current minimum count.
+        const minCount = Math.min(...candidates.map(c => staffAssignments[c.id].count));
         const topCandidates = candidates.filter(c =>
-            staffAssignments[c.id].count <= targetPerPerson
+            equalDistribution
+                ? staffAssignments[c.id].count === minCount
+                : staffAssignments[c.id].count <= targetPerPerson
         );
 
         for (const targetSeniority of preferredSeniorityMix) {
