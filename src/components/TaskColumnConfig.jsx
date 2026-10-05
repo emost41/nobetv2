@@ -202,6 +202,22 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
                     </p>
                 </div>
 
+                {/* Equal Distribution */}
+                <div style={{ marginBottom: '20px', padding: '12px', border: '1px solid var(--surface-container-highest)', borderRadius: 'var(--radius-md)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600' }}>
+                        <input
+                            type="checkbox"
+                            checked={equalDistribution}
+                            onChange={(e) => setEqualDistribution(e.target.checked)}
+                            style={{ accentColor: 'var(--primary)' }}
+                        />
+                        ⚖️ Görevleri mümkün olduğunca eşit dağıt
+                    </label>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--on-surface-variant)', margin: '6px 0 0 26px' }}>
+                        Seçilen günlerde toplam görev sayısını kişiler arasında olabildiğince eşit tutar. İzin, nöbet ertesi ve başka görev gibi zorunlu kısıtlar varsa eşitlik bozulabilir.
+                    </p>
+                </div>
+
                 {/* Buttons */}
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                     <button onClick={onClose} className="btn btn-ghost">
