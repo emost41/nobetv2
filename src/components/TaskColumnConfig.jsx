@@ -7,7 +7,7 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
         targetWeekdays: [1, 3, 4, 5],
         maxPerDay: 3,
         preferredSeniorityMix: [],
-        equalDistribution: false
+        equalDistribution: false, weeklyService: false
     };
 
     const [selectionMode, setSelectionMode] = useState(
@@ -21,6 +21,7 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
         config.preferredSeniorityMix?.join(',') || ''
     );
     const [equalDistribution, setEqualDistribution] = useState(config.equalDistribution ?? false);
+    const [weeklyService, setWeeklyService] = useState(config.weeklyService ?? false);
 
     const weekdayNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 
@@ -202,6 +203,17 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
                     />
                     <p style={{ fontSize: '0.72rem', color: 'var(--on-surface-variant)', marginTop: '4px' }}>
                         Her güne bu kıdemlerden birer kişi atamaya çalışır (virgülle ayırın)
+                    </p>
+                </div>
+
+                {/* Weekly Service */}
+                <div style={{ marginBottom: '20px', padding: '12px', border: '1px solid var(--surface-container-highest)', borderRadius: 'var(--radius-md)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600' }}>
+                        <input type="checkbox" checked={weeklyService} onChange={(e) => setWeeklyService(e.target.checked)} style={{ accentColor: 'var(--primary)' }} />
+                        Haftalik servisci modu
+                    </label>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--on-surface-variant)', margin: '6px 0 0 26px' }}>
+                        Kidem seciminde 2 kidem secin. Sistem ayni ikiliyi mumkun oldugunca hafta boyunca tutar; nobet ertesi gun zorunlu olarak ayni kidemden degistirilebilir. Ameliyat gunu de servis gorevi bolunebilir.
                     </p>
                 </div>
 
