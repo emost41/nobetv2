@@ -79,6 +79,52 @@ const TaskDistribution = ({ staffList, schedule, constraints, tasks, setTasks, o
         window.print();
     };
 
+    const handleTaskExport = () => {
+        if (!schedule) return;
+        const selectedDate = constraints.selectedMonth ? new Date(constraints.selectedMonth + '-01') : new Date();
+        const exportDays = eachDayOfInterval({ start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) });
+        const rows = [];
+        const header = ['Tarih'];
+        for (let i = 0; i < maxAssigned; i++) header.push(shiftColumnNames[i] || `Nöbetçi ${i + 1}`);
+        taskColumns.forEach((col, idx) => {
+            const maxPerDay = constraints.taskColumnConfig?.[idx]?.maxPerDay || 1;
+            for (let subIdx = 0; subIdx < maxPerDay; subIdx++) header.push(maxPerDay > 1 ? `${col} ${subIdx + 1}` : col);
+        });
+        header.push(leaveColumnName);
+        rows.push(header);
+        exportDays.forEach(day => {
+            const dateString = format(day, 'yyyy-MM-dd');
+            const shiftStaff = schedule[dateString] ? [...schedule[dateString]].sort((a, b) => b.seniority - a.seniority) : [];
+            const dayTasks = tasks[dateString] || {};
+            const row = [format(day, 'd MMMM EEE', { locale: tr })];
+            for (let i = 0; i < maxAssigned; i++) row.push(shiftStaff[i]?.name || '');
+            taskColumns.forEach((_, idx) => {
+                const maxPerDay = constraints.taskColumnConfig?.[idx]?.maxPerDay || 1;
+                const ids = Array.isArray(dayTasks[idx]) ? dayTasks[idx] : (dayTasks[idx] ? [dayTasks[idx]] : []);
+                for (let subIdx = 0; subIdx < maxPerDay; subIdx++) {
+                    const staff = staffList.find(s => s.id === ids[subIdx]);
+                    row.push(staff?.name || '');
+                }
+            });
+            const leaveNames = staffList.filter(s => {
+                const status = s.unavailability?.[dateString];
+                return status === 'leave' || status === 'izin';
+            }).map(s => s.name).filter(Boolean);
+            row.push(leaveNames.join(' / '));
+            rows.push(row);
+        });
+        const csv = '\uFEFF' + rows.map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `gorevler_${constraints.selectedMonth || format(new Date(), 'yyyy-MM')}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     // Initialize month
     const selectedDate = constraints.selectedMonth ? new Date(constraints.selectedMonth + '-01') : new Date();
     const monthStart = startOfMonth(selectedDate);
