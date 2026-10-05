@@ -18,7 +18,7 @@ const isTurkishHoliday = (date) => {
 
     const religiousHolidays2025 = [
         { month: 3, day: 30 }, { month: 3, day: 31 }, { month: 4, day: 1 },
-        { month: 6, day: 6 }, { month: 7, day: 7 }, { month: 6, day: 8 }, { month: 6, day: 9 },
+        { month: 6, day: 6 }, { month: 6, day: 7 }, { month: 6, day: 8 }, { month: 6, day: 9 },
     ];
 
     const checkHoliday = (holidays) => holidays.some(h => h.month === month && h.day === day);
@@ -189,7 +189,7 @@ export function distributeTaskColumn({
 
                 if (candidates.length === 0) break;
 
-                const chosen = candidates[0];
+                const chosen = choosePreferredSeniority(candidates, staffById, preferredSeniorityMix, selected);
                 selected.push(chosen);
                 addStats(counts, chosen, day);
             }
