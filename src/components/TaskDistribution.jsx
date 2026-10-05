@@ -8,6 +8,7 @@ const TaskDistribution = ({ staffList, schedule, constraints, tasks, setTasks, o
     const [hiddenColumns, setHiddenColumns] = useState(constraints.hiddenTaskColumns || []);
     const [configColumnIndex, setConfigColumnIndex] = useState(null);
     const [activeStatsTab, setActiveStatsTab] = useState(0);
+    const [statsExpanded, setStatsExpanded] = useState(false);
     const [editingCell, setEditingCell] = useState(null); // {dateString, columnIdx, subIdx}
     const [leaveColumnName, setLeaveColumnName] = useState(constraints.leaveColumnName || 'İzinli');
     const [editingLeaveColumnName, setEditingLeaveColumnName] = useState(false);
@@ -664,63 +665,55 @@ const TaskDistribution = ({ staffList, schedule, constraints, tasks, setTasks, o
 
 
                 {/* Per-Column Statistics with Tabs */}
-                <div className="card no-print" style={{ marginTop: '24px', background: 'var(--surface-container)' }}>
-                    <h4 style={{ margin: '0 0 16px 0', fontSize: '0.9rem' }}>📊 Görev İstatistikleri</h4>
-
-                    {/* Tab Navigation */}
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                        {taskColumns.map((col, idx) => {
-                            if (hiddenColumns.includes(idx)) return null;
-                            return (
-                                <button
-                                    key={idx}
-                                    onClick={() => setActiveStatsTab(idx)}
-                                    className={`mode-btn${activeStatsTab === idx ? ' active-required' : ''}`}
-                                >
-                                    {col}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Statistics Table for Active Column */}
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="data-table" style={{ fontSize: '0.75rem' }}>
-                            <thead>
-                                <tr>
-                                    <th>Personel</th>
-                                    <th style={{ textAlign: 'center' }}>Pzt</th>
-                                    <th style={{ textAlign: 'center' }}>Sal</th>
-                                    <th style={{ textAlign: 'center' }}>Çar</th>
-                                    <th style={{ textAlign: 'center' }}>Per</th>
-                                    <th style={{ textAlign: 'center' }}>Cum</th>
-                                    <th style={{ textAlign: 'center', background: 'rgba(102, 217, 204, 0.05)' }}>Cmt</th>
-                                    <th style={{ textAlign: 'center', background: 'rgba(102, 217, 204, 0.05)' }}>Paz</th>
-                                    <th style={{ textAlign: 'center', color: 'var(--primary)' }}>Toplam</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {calculateColumnDayStats(activeStatsTab).map(stat => (
-                                    <tr key={stat.name}>
-                                        <td style={{ fontWeight: '600', color: getSeniorityColor(stat.seniority) }}>
-                                            {stat.name}
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>{stat.days[1] || '-'}</td>
-                                        <td style={{ textAlign: 'center' }}>{stat.days[2] || '-'}</td>
-                                        <td style={{ textAlign: 'center' }}>{stat.days[3] || '-'}</td>
-                                        <td style={{ textAlign: 'center' }}>{stat.days[4] || '-'}</td>
-                                        <td style={{ textAlign: 'center' }}>{stat.days[5] || '-'}</td>
-                                        <td className="weekend-row" style={{ textAlign: 'center' }}>{stat.days[6] || '-'}</td>
-                                        <td className="weekend-row" style={{ textAlign: 'center' }}>{stat.days[0] || '-'}</td>
-                                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--primary)' }}>
-                                            {stat.total}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                {(() => {
+                    const visibleStatsColumns = taskColumns.map((col, idx) => ({ col, idx })).filter(({ idx }) => !hiddenColumns.includes(idx));
+                    const effectiveStatsTab = visibleStatsColumns.some(x => x.idx === activeStatsTab) ? activeStatsTab : (visibleStatsColumns[0]?.idx ?? 0);
+                    const stats = calculateColumnDayStats(effectiveStatsTab);
+                    const totals = stats.map(s => s.total);
+                    const totalAssignments = totals.reduce((sum, n) => sum + n, 0);
+                    const minTotal = totals.length ? Math.min(...totals) : 0;
+                    const maxTotal = totals.length ? Math.max(...totals) : 0;
+                    return (
+                        <div className="card no-print" style={{ marginTop: '24px', background: 'var(--surface-container)', padding: '12px 14px' }}>
+                            <button onClick={() => setStatsExpanded(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 0, color: 'inherit', cursor: 'pointer', padding: 0 }}>
+                                <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>📊 Görev İstatistikleri</span>
+                                <span style={{ color: 'var(--on-surface-variant)', fontSize: '0.8rem' }}>{statsExpanded ? '▲ Gizle' : '▼ Göster'}</span>
+                            </button>
+                            {statsExpanded && (
+                                <div style={{ marginTop: '12px' }}>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px', fontSize: '0.72rem', color: 'var(--on-surface-variant)' }}>
+                                        <span><strong>{totalAssignments}</strong> toplam görev</span><span>•</span><span>Kişi başı <strong>{minTotal}–{maxTotal}</strong></span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px' }}>
+                                        {visibleStatsColumns.map(({ col, idx }) => (
+                                            <button key={idx} onClick={() => setActiveStatsTab(idx)} className={`mode-btn${effectiveStatsTab === idx ? ' active-required' : ''`} style={{ flex: '0 0 auto', whiteSpace: 'nowrap', padding: '5px 9px', fontSize: '0.72rem' }}>{col}</button>
+                                        ))}
+                                    </div>
+                                    <div style={{ maxHeight: '320px', overflow: 'auto', borderRadius: 'var(--radius-md)' }}>
+                                        <table className="data-table" style={{ fontSize: '0.72rem' }}>
+                                            <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                                                <tr>
+                                                    <th style={{ padding: '6px 8px' }}>Personel</th>
+                                                    {['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'].map(dayName => <th key={dayName} style={{ textAlign: 'center', padding: '6px 5px' }}>{dayName}</th>)}
+                                                    <th style={{ textAlign: 'center', color: 'var(--primary)', padding: '6px 7px' }}>Top.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {stats.map(stat => (
+                                                    <tr key={stat.id}>
+                                                        <td style={{ fontWeight: '600', color: getSeniorityColor(stat.seniority), padding: '5px 8px', whiteSpace: 'nowrap' }}>{stat.name}</td>
+                                                        {[1,2,3,4,5,6,0].map(day => <td key={day} style={{ textAlign: 'center', padding: '5px' }}>{stat.days[day] || '·'}</td>)}
+                                                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--primary)', padding: '5px 7px' }}>{stat.total}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Hidden Columns Info */}
                 {hiddenColumns.length > 0 && (
