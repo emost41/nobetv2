@@ -8,26 +8,24 @@ const isTurkishHoliday = (date) => {
     const month = date.getMonth() + 1;
     const day = date.getDate();
 
-    // Fixed holidays
     const fixedHolidays = [
-        { month: 1, day: 1 },   // Yılbaşı
-        { month: 4, day: 23 },  // 23 Nisan
-        { month: 5, day: 1 },   // İşçi Bayramı
-        { month: 5, day: 19 },  // 19 Mayıs
-        { month: 7, day: 15 },  // 15 Temmuz
-        { month: 8, day: 30 },  // 30 Ağustos
-        { month: 10, day: 29 }, // 29 Ekim
+        { month: 1, day: 1 },
+        { month: 4, day: 23 },
+        { month: 5, day: 1 },
+        { month: 5, day: 19 },
+        { month: 7, day: 15 },
+        { month: 8, day: 30 },
+        { month: 10, day: 29 },
     ];
 
-    // Religious holidays (approximate - these change yearly)
     const religiousHolidays2024 = [
-        { month: 4, day: 10 }, { month: 4, day: 11 }, { month: 4, day: 12 }, // Ramazan 2024
-        { month: 6, day: 16 }, { month: 6, day: 17 }, { month: 6, day: 18 }, { month: 6, day: 19 }, // Kurban 2024
+        { month: 4, day: 10 }, { month: 4, day: 11 }, { month: 4, day: 12 },
+        { month: 6, day: 16 }, { month: 6, day: 17 }, { month: 6, day: 18 }, { month: 6, day: 19 },
     ];
 
     const religiousHolidays2025 = [
-        { month: 3, day: 30 }, { month: 3, day: 31 }, { month: 4, day: 1 }, // Ramazan 2025
-        { month: 6, day: 6 }, { month: 6, day: 7 }, { month: 6, day: 8 }, { month: 6, day: 9 }, // Kurban 2025
+        { month: 3, day: 30 }, { month: 3, day: 31 }, { month: 4, day: 1 },
+        { month: 6, day: 6 }, { month: 6, day: 7 }, { month: 6, day: 8 }, { month: 6, day: 9 },
     ];
 
     const checkHoliday = (holidays) => holidays.some(h => h.month === month && h.day === day);
@@ -41,15 +39,6 @@ const isTurkishHoliday = (date) => {
 
 /**
  * Auto-distribute tasks for a specific column based on configuration
- * @param {Object} params
- * @param {Array} params.days - Array of Date objects for the month
- * @param {Array} params.staffList - All staff members
- * @param {Object} params.schedule - Current shift schedule
- * @param {Object} params.currentTasks - Current task assignments
- * @param {Object} params.columnConfig - Configuration for this column
- * @param {number} params.columnIndex - Index of the column being distributed
- * @param {boolean} params.fillEmptyOnly - If true, only fill empty cells
- * @returns {Object} New task assignments for this column
  */
 export function distributeTaskColumn({
     days,
@@ -62,17 +51,15 @@ export function distributeTaskColumn({
 }) {
     const newTasks = { ...currentTasks };
 
-    // Get configuration
     const {
         eligibleStaffIds = [],
         eligibleSeniorities = [],
-        targetWeekdays = [], // [1, 3, 4, 5] for Mon, Wed, Thu, Fri (0=Sunday)
+        targetWeekdays = [],
         maxPerDay = 3,
-        preferredSeniorityMix = [], // e.g., [7, 5, 4] - preferred seniority levels per slot
+        preferredSeniorityMix = [],
         equalDistribution = false
     } = columnConfig;
 
-    // Filter eligible staff
     let eligibleStaff = staffList.filter(staff => {
         if (eligibleStaffIds.length > 0) {
             return eligibleStaffIds.includes(staff.id);
@@ -88,64 +75,60 @@ export function distributeTaskColumn({
         return newTasks;
     }
 
-    // Filter days to target weekdays and EXCLUDE holidays
     const targetDays = days.filter(day => {
-        // Skip holidays for task distribution
         if (isTurkishHoliday(day)) return false;
-
         if (targetWeekdays.length === 0) return true;
         const dayOfWeek = getDay(day);
         return targetWeekdays.includes(dayOfWeek);
     });
 
-    // Initialize staff assignment tracking
     const staffAssignments = {};
     eligibleStaff.forEach(staff => {
         staffAssignments[staff.id] = {
             count: 0,
             weeks: new Set(),
-            days: []
+            days: [],
+            weekdayCounts: {}
         };
     });
 
-    // If fillEmptyOnly, count existing assignments
-    if (fillEmptyOnly) {
-        targetDays.forEach(day => {
-            const dateString = format(day, 'yyyy-MM-dd');
-            const dayTasks = newTasks[dateString] || {};
-            const assignedStaffIds = dayTasks[columnIndex] || [];
+    const registerAssignment = (staffId, day) => {
+        if (!staffAssignments[staffId]) return;
+        const weekday = getDay(day);
+        staffAssignments[staffId].count++;
+        staffAssignments[staffId].weeks.add(getWeek(day));
+        staffAssignments[staffId].days.push(format(day, 'yyyy-MM-dd'));
+        staffAssignments[staffId].weekdayCounts[weekday] =
+            (staffAssignments[staffId].weekdayCounts[weekday] || 0) + 1;
+    };
 
-            if (Array.isArray(assignedStaffIds)) {
-                assignedStaffIds.forEach(staffId => {
-                    if (staffAssignments[staffId]) {
-                        staffAssignments[staffId].count++;
-                        staffAssignments[staffId].weeks.add(getWeek(day));
-                        staffAssignments[staffId].days.push(dateString);
-                    }
-                });
-            }
-        });
-    }
+    // Always count existing assignments so fillEmptyOnly and regenerated distributions
+    // use the same fairness information.
+    targetDays.forEach(day => {
+        const dateString = format(day, 'yyyy-MM-dd');
+        const dayTasks = newTasks[dateString] || {};
+        const assignedStaffIds = dayTasks[columnIndex] || [];
 
-    // Calculate target count per person (equal distribution)
+        if (Array.isArray(assignedStaffIds)) {
+            assignedStaffIds.forEach(staffId => registerAssignment(staffId, day));
+        }
+    });
+
     const totalSlots = targetDays.length * maxPerDay;
     const targetPerPerson = Math.floor(totalSlots / eligibleStaff.length);
-    const remainder = totalSlots % eligibleStaff.length;
 
-    // Distribute tasks
     targetDays.forEach(day => {
         const dateString = format(day, 'yyyy-MM-dd');
         const weekNumber = getWeek(day);
+        const weekday = getDay(day);
 
-        // Skip if fillEmptyOnly and already has assignments
         if (fillEmptyOnly) {
             const dayTasks = newTasks[dateString] || {};
             if (dayTasks[columnIndex] && Array.isArray(dayTasks[columnIndex]) && dayTasks[columnIndex].length > 0) {
-                return; // Skip this day
+                return;
             }
         }
 
-        // Get available staff for this day
         const availableStaff = getAvailableStaffForDay(
             day,
             eligibleStaff,
@@ -159,69 +142,47 @@ export function distributeTaskColumn({
             return;
         }
 
-        // Select staff for this day
         const selectedStaff = selectStaffForDay(
             availableStaff,
             staffAssignments,
             dateString,
             weekNumber,
+            weekday,
             maxPerDay,
             targetPerPerson,
             preferredSeniorityMix,
             equalDistribution
         );
 
-        // Assign to tasks
         if (!newTasks[dateString]) {
             newTasks[dateString] = {};
         }
         newTasks[dateString][columnIndex] = selectedStaff.map(s => s.id);
 
-        // Update tracking
-        selectedStaff.forEach(staff => {
-            staffAssignments[staff.id].count++;
-            staffAssignments[staff.id].weeks.add(weekNumber);
-            staffAssignments[staff.id].days.push(dateString);
-        });
+        selectedStaff.forEach(staff => registerAssignment(staff.id, day));
     });
 
     return newTasks;
 }
 
-/**
- * Get staff available for a specific day (checks leave, unavailability, previous shift)
- */
 function getAvailableStaffForDay(day, eligibleStaff, schedule, tasks, columnIndex) {
     const dateString = format(day, 'yyyy-MM-dd');
 
     return eligibleStaff.filter(staff => {
-        // PRIORITY 1: Check leave days
-        if (staff.leaveDays && staff.leaveDays.includes(dateString)) {
-            return false;
-        }
+        if (staff.leaveDays && staff.leaveDays.includes(dateString)) return false;
+        if (staff.unavailability && staff.unavailability.includes(dateString)) return false;
 
-        // PRIORITY 2: Check unavailability
-        if (staff.unavailability && staff.unavailability.includes(dateString)) {
-            return false;
-        }
-
-        // Check if worked previous night shift
         const prevDate = new Date(day);
         prevDate.setDate(prevDate.getDate() - 1);
         const prevDateString = format(prevDate, 'yyyy-MM-dd');
         const prevShiftStaff = schedule && schedule[prevDateString] ? schedule[prevDateString] : [];
-        if (prevShiftStaff.some(s => s.id === staff.id)) {
-            return false;
-        }
+        if (prevShiftStaff.some(s => s.id === staff.id)) return false;
 
-        // Check if already assigned to another task this day
         const dayTasks = tasks[dateString] || {};
         for (let idx in dayTasks) {
             if (parseInt(idx) !== columnIndex) {
                 const assignedIds = Array.isArray(dayTasks[idx]) ? dayTasks[idx] : [dayTasks[idx]];
-                if (assignedIds.includes(staff.id)) {
-                    return false;
-                }
+                if (assignedIds.includes(staff.id)) return false;
             }
         }
 
@@ -230,13 +191,22 @@ function getAvailableStaffForDay(day, eligibleStaff, schedule, tasks, columnInde
 }
 
 /**
- * Select staff for a specific day based on distribution rules
+ * Select staff with this priority in equal-distribution mode:
+ * 1) give the current weekday to people who have received it fewer times
+ * 2) avoid a second task in the same calendar week when possible
+ * 3) keep total task counts balanced
+ * 4) avoid consecutive calendar days
+ * 5) seniority as tie-breaker
+ *
+ * This prevents patterns such as one person receiving every Wednesday while
+ * another receives every Thursday, even when total counts are equal.
  */
 function selectStaffForDay(
     availableStaff,
     staffAssignments,
     currentDateString,
     weekNumber,
+    weekday,
     maxPerDay,
     targetPerPerson,
     preferredSeniorityMix,
@@ -244,6 +214,7 @@ function selectStaffForDay(
 ) {
     const selected = [];
     const candidates = [...availableStaff].sort(() => Math.random() - 0.5);
+
     const isPreviousCalendarDay = (staff) => {
         const lastDay = staffAssignments[staff.id].days.at(-1);
         if (!lastDay) return false;
@@ -252,36 +223,46 @@ function selectStaffForDay(
         return Math.round((currentDate - lastDate) / 86400000) === 1;
     };
 
-    // Equal mode priorities:
-    // 1) total task count
-    // 2) avoid consecutive calendar days
-    // 3) spread across different weeks
-    // 4) seniority as a tie-breaker
     candidates.sort((a, b) => {
         const aData = staffAssignments[a.id];
         const bData = staffAssignments[b.id];
 
-        if (equalDistribution && aData.count !== bData.count) {
-            return aData.count - bData.count;
-        }
-
-        const aUnderTarget = aData.count < targetPerPerson;
-        const bUnderTarget = bData.count < targetPerPerson;
-        if (!equalDistribution && aUnderTarget !== bUnderTarget) {
-            return aUnderTarget ? -1 : 1;
-        }
-
         if (equalDistribution) {
+            // First level: distribute each weekday across the eligible people.
+            // This is the key change from pure total-count balancing.
+            const aWeekdayCount = aData.weekdayCounts[weekday] || 0;
+            const bWeekdayCount = bData.weekdayCounts[weekday] || 0;
+            if (aWeekdayCount !== bWeekdayCount) {
+                return aWeekdayCount - bWeekdayCount;
+            }
+
+            // Prefer not to give someone two task days in the same week.
+            const aWorkedThisWeek = aData.weeks.has(weekNumber);
+            const bWorkedThisWeek = bData.weeks.has(weekNumber);
+            if (aWorkedThisWeek !== bWorkedThisWeek) {
+                return aWorkedThisWeek ? 1 : -1;
+            }
+
+            // Then keep the overall number of tasks balanced.
+            if (aData.count !== bData.count) {
+                return aData.count - bData.count;
+            }
+
+            // Consecutive calendar days remain a soft penalty.
             const aConsecutive = isPreviousCalendarDay(a);
             const bConsecutive = isPreviousCalendarDay(b);
             if (aConsecutive !== bConsecutive) {
                 return aConsecutive ? 1 : -1;
             }
+        } else {
+            const aUnderTarget = aData.count < targetPerPerson;
+            const bUnderTarget = bData.count < targetPerPerson;
+            if (aUnderTarget !== bUnderTarget) {
+                return aUnderTarget ? -1 : 1;
+            }
 
-            const aWorkedThisWeek = aData.weeks.has(weekNumber);
-            const bWorkedThisWeek = bData.weeks.has(weekNumber);
-            if (aWorkedThisWeek !== bWorkedThisWeek) {
-                return aWorkedThisWeek ? 1 : -1;
+            if (aData.count !== bData.count) {
+                return aData.count - bData.count;
             }
         }
 
@@ -296,24 +277,25 @@ function selectStaffForDay(
         return 0;
     });
 
-    // Preferred seniority mix may only break fairness ties in equal mode.
     if (preferredSeniorityMix && preferredSeniorityMix.length > 0) {
-        const minCount = Math.min(...candidates.map(c => staffAssignments[c.id].count));
+        const minWeekdayCount = Math.min(
+            ...candidates.map(c => staffAssignments[c.id].weekdayCounts[weekday] || 0)
+        );
 
         let topCandidates = candidates.filter(c =>
             equalDistribution
-                ? staffAssignments[c.id].count === minCount
+                ? (staffAssignments[c.id].weekdayCounts[weekday] || 0) === minWeekdayCount
                 : staffAssignments[c.id].count <= targetPerPerson
         );
 
         if (equalDistribution) {
-            const nonConsecutive = topCandidates.filter(c => !isPreviousCalendarDay(c));
-            if (nonConsecutive.length > 0) topCandidates = nonConsecutive;
-
             const notThisWeek = topCandidates.filter(c =>
                 !staffAssignments[c.id].weeks.has(weekNumber)
             );
             if (notThisWeek.length > 0) topCandidates = notThisWeek;
+
+            const nonConsecutive = topCandidates.filter(c => !isPreviousCalendarDay(c));
+            if (nonConsecutive.length > 0) topCandidates = nonConsecutive;
         }
 
         for (const targetSeniority of preferredSeniorityMix) {
