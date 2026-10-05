@@ -61,7 +61,8 @@ export function distributeTaskColumn({
         targetWeekdays = [],
         maxPerDay = 3,
         preferredSeniorityMix = [],
-        equalDistribution = false
+        equalDistribution = false,
+        weeklyService = false
     } = columnConfig;
 
     const eligibleStaff = staffList.filter(staff => {
@@ -73,6 +74,10 @@ export function distributeTaskColumn({
     if (eligibleStaff.length === 0) {
         console.warn('No eligible staff found for distribution');
         return newTasks;
+    }
+
+    if (weeklyService && eligibleSeniorities.length === 2 && eligibleStaffIds.length === 0) {
+        return distributeWeeklyService(days, staffList, schedule, currentTasks, columnConfig, columnIndex, fillEmptyOnly);
     }
 
     const targetDays = days
@@ -249,6 +254,85 @@ export function distributeTaskColumn({
     });
 
     return newTasks;
+}
+
+
+function distributeWeeklyService(days, staffList, schedule, currentTasks, columnConfig, columnIndex, fillEmptyOnly) {
+    const result = { ...currentTasks };
+    const seniors = [...(columnConfig.eligibleSeniorities || [])].sort((a, b) => b - a);
+    const upper = staffList.filter(s => s.seniority === seniors[0]);
+    const lower = staffList.filter(s => s.seniority === seniors[1]);
+    if (!upper.length || !lower.length) return result;
+
+    const weekdays = columnConfig.targetWeekdays || [];
+    const targets = days.filter(d => !isTurkishHoliday(d) && (weekdays.length === 0 || weekdays.includes(getDay(d)))).sort((a,b) => a-b);
+    const weekKeys = [...new Set(targets.map(getWeekKey))];
+    const used = {};
+    staffList.forEach(s => { used[s.id] = 0; });
+
+    const dateOf = d => format(d, 'yyyy-MM-dd');
+    const postCall = (s, d) => {
+        const p = new Date(d); p.setDate(p.getDate() - 1);
+        const shifts = schedule?.[dateOf(p)] || [];
+        return shifts.some(x => x.id === s.id);
+    };
+    const unavailable = (s, d) => s.leaveDays?.includes(dateOf(d)) || s.unavailability?.includes(dateOf(d)) || postCall(s, d);
+
+    const nobetCount = (id, week) => Object.keys(schedule || {}).reduce((n, key) => {
+        const d = new Date(key + 'T00:00:00');
+        if (getWeekKey(d) !== week) return n;
+        return n + ((schedule[key] || []).some(x => x.id === id) ? 1 : 0);
+    }, 0);
+
+    const pairForWeek = week => {
+        let best = null;
+        upper.forEach(u => lower.forEach(l => {
+            const score = [nobetCount(u.id, week) + nobetCount(l.id, week), used[u.id] + used[l.id], used[u.id], used[l.id], String(u.id), String(l.id)];
+            if (!best || compareScore(score, best.score) < 0) best = { u, l, score };
+        }));
+        return best;
+    };
+
+    const pairs = {};
+    weekKeys.forEach(week => {
+        const p = pairForWeek(week);
+        if (p) { pairs[week] = p; used[p.u.id]++; used[p.l.id]++; }
+    });
+
+    const available = (preferred, group, day, week) => {
+        if (!unavailable(preferred, day)) return preferred.id;
+        const alt = group.filter(s => s.id !== preferred.id && !unavailable(s, day))
+            .sort((a,b) => {
+                const x = nobetCount(a.id, week), y = nobetCount(b.id, week);
+                if (x !== y) return x - y;
+                return String(a.id).localeCompare(String(b.id));
+            });
+        return alt[0]?.id || null;
+    };
+
+    targets.forEach(day => {
+        const date = dateOf(day);
+        if (fillEmptyOnly && result[date]?.[columnIndex]) return;
+        const p = pairs[getWeekKey(day)];
+        if (!p) return;
+        const ids = [available(p.u, upper, day, getWeekKey(day)), available(p.l, lower, day, getWeekKey(day))].filter(Boolean);
+        if (!result[date]) result[date] = {};
+        if (ids.length) result[date][columnIndex] = [...new Set(ids)];
+        else delete result[date][columnIndex];
+    });
+    return result;
+}
+
+function getWeekKey(day) {
+    return `${day.getFullYear()}-${getWeek(day)}`;
+}
+
+function compareScore(a, b) {
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] < b[i]) return -1;
+        if (a[i] > b[i]) return 1;
+    }
+    return 0;
 }
 
 function createStats(staffList) {
