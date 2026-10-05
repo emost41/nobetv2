@@ -160,13 +160,15 @@ export function distributeTaskColumn({
         }
 
         // Select staff for this day
+        selectStaffForDay.currentDateString = dateString;
         const selectedStaff = selectStaffForDay(
             availableStaff,
             staffAssignments,
             weekNumber,
             maxPerDay,
             targetPerPerson,
-            preferredSeniorityMix
+            preferredSeniorityMix,
+            equalDistribution
         );
 
         // Assign to tasks
