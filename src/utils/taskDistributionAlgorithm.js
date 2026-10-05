@@ -259,68 +259,200 @@ export function distributeTaskColumn({
 
 function distributeWeeklyService(days, staffList, schedule, currentTasks, columnConfig, columnIndex, fillEmptyOnly) {
     const result = { ...currentTasks };
+
+    // Weekly service mode is a strict two-group scheduler:
+    // every service day gets exactly ONE upper-seniority + ONE lower-seniority person.
+    // equalDistribution is deliberately ignored here.
     const seniors = [...(columnConfig.eligibleSeniorities || [])].sort((a, b) => b - a);
+    if (seniors.length !== 2) return result;
+
     const upper = staffList.filter(s => s.seniority === seniors[0]);
     const lower = staffList.filter(s => s.seniority === seniors[1]);
     if (!upper.length || !lower.length) return result;
 
     const weekdays = columnConfig.targetWeekdays || [];
-    const targets = days.filter(d => !isTurkishHoliday(d) && (weekdays.length === 0 || weekdays.includes(getDay(d)))).sort((a,b) => a-b);
-    const weekKeys = [...new Set(targets.map(getWeekKey))];
-    const used = {};
-    staffList.forEach(s => { used[s.id] = 0; });
+    const targets = days
+        .filter(d => {
+            if (isTurkishHoliday(d)) return false;
+            return weekdays.length === 0 || weekdays.includes(getDay(d));
+        })
+        .sort((a, b) => a - b);
+
+    if (!targets.length) return result;
 
     const dateOf = d => format(d, 'yyyy-MM-dd');
-    const postCall = (s, d) => {
-        const p = new Date(d); p.setDate(p.getDate() - 1);
-        const shifts = schedule?.[dateOf(p)] || [];
-        return shifts.some(x => x.id === s.id);
+
+    const hasNightDuty = (staff, day) => {
+        const previous = new Date(day);
+        previous.setDate(previous.getDate() - 1);
+        const previousDate = dateOf(previous);
+        return (schedule?.[previousDate] || []).some(x => x.id === staff.id);
     };
-    const unavailable = (s, d) => s.leaveDays?.includes(dateOf(d)) || s.unavailability?.includes(dateOf(d)) || postCall(s, d);
 
-    const nobetCount = (id, week) => Object.keys(schedule || {}).reduce((n, key) => {
-        const d = new Date(key + 'T00:00:00');
-        if (getWeekKey(d) !== week) return n;
-        return n + ((schedule[key] || []).some(x => x.id === id) ? 1 : 0);
-    }, 0);
+    const hasHardConflict = (staff, day, date) => {
+        if (staff.leaveDays?.includes(date)) return true;
+        if (staff.unavailability?.includes(date)) return true;
+        if (hasNightDuty(staff, day)) return true;
 
-    const pairForWeek = week => {
+        // A person doing another task that day (e.g. surgery) cannot also
+        // be the weekly service person.
+        const dayTasks = result[date] || {};
+        for (const idx of Object.keys(dayTasks)) {
+            if (parseInt(idx, 10) === columnIndex) continue;
+            const ids = Array.isArray(dayTasks[idx]) ? dayTasks[idx] : [dayTasks[idx]];
+            if (ids.includes(staff.id)) return true;
+        }
+
+        return false;
+    };
+
+    const getWeekKey = day => {
+        // Monday-based calendar week. Using the week's Monday as the key also
+        // handles month boundaries without mixing two different weeks.
+        const monday = new Date(day);
+        const offset = (monday.getDay() + 6) % 7;
+        monday.setDate(monday.getDate() - offset);
+        return dateOf(monday);
+    };
+
+    const weekKeys = [...new Set(targets.map(getWeekKey))];
+
+    // Count how many service-weeks each person has already received and use
+    // this only after the night-duty burden has been considered.
+    const serviceWeeks = {};
+    staffList.forEach(s => { serviceWeeks[s.id] = 0; });
+
+    // Existing weekly assignments are counted so "fill empty only" remains stable.
+    targets.forEach(day => {
+        const date = dateOf(day);
+        const ids = Array.isArray(result[date]?.[columnIndex])
+            ? result[date][columnIndex]
+            : (result[date]?.[columnIndex] ? [result[date][columnIndex]] : []);
+
+        ids.forEach(id => {
+            if (serviceWeeks[id] !== undefined) serviceWeeks[id]++;
+        });
+    });
+
+    const pairForWeek = (weekKey, previousPair) => {
         let best = null;
-        upper.forEach(u => lower.forEach(l => {
-            const score = [nobetCount(u.id, week) + nobetCount(l.id, week), used[u.id] + used[l.id], used[u.id], used[l.id], String(u.id), String(l.id)];
-            if (!best || compareScore(score, best.score) < 0) best = { u, l, score };
-        }));
+
+        for (const u of upper) {
+            for (const l of lower) {
+                // Prefer pairs whose members have fewer night duties during
+                // this calendar week.
+                const weekNights = countNightDutiesInWeek(u, weekKey, schedule)
+                    + countNightDutiesInWeek(l, weekKey, schedule);
+
+                // If there is another viable pair, avoid repeating the exact
+                // same pair in consecutive weeks.
+                const repeatedPair = previousPair &&
+                    previousPair.u.id === u.id &&
+                    previousPair.l.id === l.id ? 1 : 0;
+
+                const score = [
+                    weekNights,
+                    repeatedPair,
+                    serviceWeeks[u.id] + serviceWeeks[l.id],
+                    serviceWeeks[u.id],
+                    serviceWeeks[l.id],
+                    String(u.id),
+                    String(l.id)
+                ];
+
+                if (!best || compareScore(score, best.score) < 0) {
+                    best = { u, l, score };
+                }
+            }
+        }
+
         return best;
     };
 
     const pairs = {};
-    weekKeys.forEach(week => {
-        const p = pairForWeek(week);
-        if (p) { pairs[week] = p; used[p.u.id]++; used[p.l.id]++; }
-    });
+    let previousPair = null;
 
-    const available = (preferred, group, day, week) => {
-        if (!unavailable(preferred, day)) return preferred.id;
-        const alt = group.filter(s => s.id !== preferred.id && !unavailable(s, day))
-            .sort((a,b) => {
-                const x = nobetCount(a.id, week), y = nobetCount(b.id, week);
-                if (x !== y) return x - y;
+    for (const weekKey of weekKeys) {
+        const pair = pairForWeek(weekKey, previousPair);
+        if (!pair) continue;
+
+        pairs[weekKey] = pair;
+        serviceWeeks[pair.u.id]++;
+        serviceWeeks[pair.l.id]++;
+        previousPair = pair;
+    }
+
+    const chooseForDay = (preferred, group, day) => {
+        const date = dateOf(day);
+
+        // Keep the weekly pair whenever possible.
+        if (!hasHardConflict(preferred, day, date)) {
+            return preferred.id;
+        }
+
+        // A conflict (leave, unavailability, post-call, surgery/other task)
+        // may split the pair for ONE DAY only. Replacement must come from
+        // exactly the same seniority group.
+        const alternatives = group
+            .filter(s => s.id !== preferred.id)
+            .filter(s => !hasHardConflict(s, day, date))
+            .sort((a, b) => {
+                const aNight = countNightDutiesInWeek(a, getWeekKey(day), schedule);
+                const bNight = countNightDutiesInWeek(b, getWeekKey(day), schedule);
+                if (aNight !== bNight) return aNight - bNight;
+                if (serviceWeeks[a.id] !== serviceWeeks[b.id]) {
+                    return serviceWeeks[a.id] - serviceWeeks[b.id];
+                }
                 return String(a.id).localeCompare(String(b.id));
             });
-        return alt[0]?.id || null;
+
+        return alternatives[0]?.id || null;
     };
 
-    targets.forEach(day => {
+    for (const day of targets) {
         const date = dateOf(day);
-        if (fillEmptyOnly && result[date]?.[columnIndex]) return;
-        const p = pairs[getWeekKey(day)];
-        if (!p) return;
-        const ids = [available(p.u, upper, day, getWeekKey(day)), available(p.l, lower, day, getWeekKey(day))].filter(Boolean);
+
+        if (fillEmptyOnly && result[date]?.[columnIndex]) {
+            continue;
+        }
+
+        const pair = pairs[getWeekKey(day)];
+        if (!pair) continue;
+
+        const upperId = chooseForDay(pair.u, upper, day);
+        const lowerId = chooseForDay(pair.l, lower, day);
+
+        // Never allow upper+upper, lower+lower, duplicate IDs, or a one-person
+        // service assignment. If either group has no valid person, leave the
+        // day unassigned rather than violating a hard rule.
+        if (!upperId || !lowerId || upperId === lowerId) {
+            if (result[date]) {
+                const copy = { ...result[date] };
+                delete copy[columnIndex];
+                result[date] = copy;
+            }
+            continue;
+        }
+
         if (!result[date]) result[date] = {};
-        if (ids.length) result[date][columnIndex] = [...new Set(ids)];
-        else delete result[date][columnIndex];
-    });
+        result[date][columnIndex] = [upperId, lowerId];
+    }
+
     return result;
+}
+
+function countNightDutiesInWeek(staff, weekKey, schedule) {
+    return Object.keys(schedule || {}).reduce((count, dateString) => {
+        const day = new Date(dateString + 'T00:00:00');
+        const monday = new Date(day);
+        const offset = (monday.getDay() + 6) % 7;
+        monday.setDate(monday.getDate() - offset);
+
+        const key = format(monday, 'yyyy-MM-dd');
+        if (key !== weekKey) return count;
+
+        return count + ((schedule[dateString] || []).some(x => x.id === staff.id) ? 1 : 0);
+    }, 0);
 }
 
 function getWeekKey(day) {
