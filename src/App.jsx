@@ -267,6 +267,8 @@ function App() {
                                         history={scheduleHistory}
                                         onLoadHistory={loadScheduleFromHistory}
                                         onDeleteHistory={deleteScheduleFromHistory}
+                                        tasks={tasks}
+                                        constraints={constraints}
                                     />
                                 </>
                             )}
@@ -286,6 +288,8 @@ function App() {
                                 history={scheduleHistory}
                                 onLoadHistory={loadScheduleFromHistory}
                                 onDeleteHistory={deleteScheduleFromHistory}
+                                        tasks={tasks}
+                                        constraints={constraints}
                             />
                         </div>
                     )}
