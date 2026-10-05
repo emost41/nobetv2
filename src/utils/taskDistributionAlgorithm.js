@@ -68,7 +68,8 @@ export function distributeTaskColumn({
         eligibleSeniorities = [],
         targetWeekdays = [], // [1, 3, 4, 5] for Mon, Wed, Thu, Fri (0=Sunday)
         maxPerDay = 3,
-        preferredSeniorityMix = [] // e.g., [7, 5, 4] - preferred seniority levels per slot
+        preferredSeniorityMix = [], // e.g., [7, 5, 4] - preferred seniority levels per slot
+        equalDistribution = false
     } = columnConfig;
 
     // Filter eligible staff
