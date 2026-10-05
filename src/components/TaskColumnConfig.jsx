@@ -70,7 +70,7 @@ const TaskColumnConfig = ({ columnIndex, columnName, constraints, setConstraints
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: 'calc(100% - 24px)', maxHeight: '90vh', overflowY: 'auto' }}>
                 <h3 style={{ marginBottom: '20px' }}>"{columnName}" Sütunu Ayarları</h3>
 
                 {/* Selection Mode */}
