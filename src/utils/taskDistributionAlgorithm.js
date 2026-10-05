@@ -236,60 +236,84 @@ function selectStaffForDay(
     weekNumber,
     maxPerDay,
     targetPerPerson,
-    preferredSeniorityMix
+    preferredSeniorityMix,
+    equalDistribution = false
 ) {
     const selected = [];
-    // Shuffle candidates first to provide variety when priorities are equal
     const candidates = [...availableStaff].sort(() => Math.random() - 0.5);
+    const currentDateString = selectStaffForDay.currentDateString;
 
-    // Sort candidates by priority
+    const isPreviousCalendarDay = (staff) => {
+        const lastDay = staffAssignments[staff.id].days.at(-1);
+        if (!lastDay) return false;
+        const lastDate = new Date(lastDay + 'T00:00:00');
+        const currentDate = new Date(currentDateString + 'T00:00:00');
+        return Math.round((currentDate - lastDate) / 86400000) === 1;
+    };
+
+    // Equal mode priorities:
+    // 1) total task count
+    // 2) avoid consecutive calendar days
+    // 3) spread across different weeks
+    // 4) seniority as a tie-breaker
     candidates.sort((a, b) => {
         const aData = staffAssignments[a.id];
         const bData = staffAssignments[b.id];
 
-        // Equal-distribution mode: total assignment count is the first priority.
-        // This keeps everyone's total as close as possible (usually difference <= 1).
         if (equalDistribution && aData.count !== bData.count) {
             return aData.count - bData.count;
         }
 
-        // Standard mode: first bring everyone up to the calculated target.
         const aUnderTarget = aData.count < targetPerPerson;
         const bUnderTarget = bData.count < targetPerPerson;
         if (!equalDistribution && aUnderTarget !== bUnderTarget) {
             return aUnderTarget ? -1 : 1;
         }
 
-        // Priority 2: Seniority (Higher seniority first - User request)
-        // If both are under target or both are over target, pick the senior one first
+        if (equalDistribution) {
+            const aConsecutive = isPreviousCalendarDay(a);
+            const bConsecutive = isPreviousCalendarDay(b);
+            if (aConsecutive !== bConsecutive) {
+                return aConsecutive ? 1 : -1;
+            }
+
+            const aWorkedThisWeek = aData.weeks.has(weekNumber);
+            const bWorkedThisWeek = bData.weeks.has(weekNumber);
+            if (aWorkedThisWeek !== bWorkedThisWeek) {
+                return aWorkedThisWeek ? 1 : -1;
+            }
+        }
+
         if (a.seniority !== b.seniority) {
             return b.seniority - a.seniority;
         }
 
-        // Priority 3: Total count (lower count first for same seniority)
         if (aData.count !== bData.count) {
             return aData.count - bData.count;
-        }
-
-        // Priority 4: Not worked this week yet (Spreading)
-        const aWorkedThisWeek = aData.weeks.has(weekNumber);
-        const bWorkedThisWeek = bData.weeks.has(weekNumber);
-        if (aWorkedThisWeek !== bWorkedThisWeek) {
-            return aWorkedThisWeek ? 1 : -1;
         }
 
         return 0;
     });
 
-    // If preferred seniority mix is specified, try to pick those first among the best candidates
+    // Preferred seniority mix may only break fairness ties in equal mode.
     if (preferredSeniorityMix && preferredSeniorityMix.length > 0) {
-        // In equal mode, seniority mixing can only choose from people at the current minimum count.
         const minCount = Math.min(...candidates.map(c => staffAssignments[c.id].count));
-        const topCandidates = candidates.filter(c =>
+
+        let topCandidates = candidates.filter(c =>
             equalDistribution
                 ? staffAssignments[c.id].count === minCount
                 : staffAssignments[c.id].count <= targetPerPerson
         );
+
+        if (equalDistribution) {
+            const nonConsecutive = topCandidates.filter(c => !isPreviousCalendarDay(c));
+            if (nonConsecutive.length > 0) topCandidates = nonConsecutive;
+
+            const notThisWeek = topCandidates.filter(c =>
+                !staffAssignments[c.id].weeks.has(weekNumber)
+            );
+            if (notThisWeek.length > 0) topCandidates = notThisWeek;
+        }
 
         for (const targetSeniority of preferredSeniorityMix) {
             if (selected.length >= maxPerDay) break;
@@ -297,18 +321,13 @@ function selectStaffForDay(
             const match = topCandidates.find(c =>
                 c.seniority === targetSeniority && !selected.includes(c)
             );
-            if (match) {
-                selected.push(match);
-            }
+            if (match) selected.push(match);
         }
     }
 
-    // Fill remaining slots with best candidates from the sorted list
     for (const candidate of candidates) {
         if (selected.length >= maxPerDay) break;
-        if (!selected.includes(candidate)) {
-            selected.push(candidate);
-        }
+        if (!selected.includes(candidate)) selected.push(candidate);
     }
 
     return selected;
