@@ -247,11 +247,16 @@ function selectStaffForDay(
         const aData = staffAssignments[a.id];
         const bData = staffAssignments[b.id];
 
-        // Priority 1: Below target count (Fairness)
-        // We want everyone to reach the target first
+        // Equal-distribution mode: total assignment count is the first priority.
+        // This keeps everyone's total as close as possible (usually difference <= 1).
+        if (equalDistribution && aData.count !== bData.count) {
+            return aData.count - bData.count;
+        }
+
+        // Standard mode: first bring everyone up to the calculated target.
         const aUnderTarget = aData.count < targetPerPerson;
         const bUnderTarget = bData.count < targetPerPerson;
-        if (aUnderTarget !== bUnderTarget) {
+        if (!equalDistribution && aUnderTarget !== bUnderTarget) {
             return aUnderTarget ? -1 : 1;
         }
 
